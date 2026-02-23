@@ -1,0 +1,39 @@
+import "prio.act";
+
+defproc insert (chan!(int<8>) X)
+{
+  int<8> v;
+  int<8> i;
+  int<8> arr[12];
+  chp {
+    arr[0] := 6;
+    arr[1] := 2;
+    arr[2] := 9;
+    arr[3] := 3;
+    arr[4] := 0;
+    arr[5] := 1;
+    arr[6] := 1;
+    arr[7] := 2;
+    arr[8] := 4;
+    arr[9] := 7;
+    arr[10] := 3;
+    arr[11] := 2;
+    i := 0;
+    *[ i < 12 -> X!arr[i]; i := i + 1 ]
+  }
+}
+
+defproc remove (chan?(int<8>) X)
+{
+  int<8> v;
+  chp {
+    *[ X?v; log ("Received value: ", v) ]
+  }
+}
+
+defproc test()
+{
+   insert src;
+   remove snk;
+   prio<8> b(src.X, snk.X);
+}

@@ -1,0 +1,85 @@
+defproc oneplace (chan?(int<8>) l; chan!(int<8>) r)
+{
+  int<8> x;
+  chp {
+    *[ l?x; r!x ]
+  }
+}
+
+template<pint N> defproc buffer (chan?(int<8>) l; chan!(int<8>) r)
+{
+  { N >= 1 : "Buffer should have at least one element!" }; // assertion
+  oneplace buf[N];
+  (i:N-1: buf[i].r=buf[i+1].l;)
+  buf[0].l=l;
+  buf[N-1].r=r;
+}
+
+template<pint N>
+defproc prio (chan?(int<8>) l; chan!(int<8>) r)
+{
+  { N >= 1 : "Buffer should have at least one element!" };
+
+  int<8> buf[N];
+  int    count;
+  int<8> value;
+  int<8> temp;
+  int    j;
+
+  chp {
+    count := 0;
+    (;i:N: buf[i] := -128);
+
+    *[
+      l?value;
+
+      [ count < N ->
+          buf[count] := value;
+          count := count + 1;
+
+          j := count - 1;
+          *[ j > 0 ->
+               [ buf[j] > buf[j-1] ->
+                   temp      := buf[j-1];
+                   buf[j-1]  := buf[j];
+                   buf[j]    := temp;
+                   j         := j - 1
+               [] buf[j] <= buf[j-1] ->
+                   j := 0
+               ]
+          ];
+
+          r!buf[0];
+
+          (;i:N-1: buf[i] := buf[i+1]);
+          buf[N-1] := -128;
+          count := count - 1
+
+      [] count >= N ->
+          [ value > buf[N-1] ->
+              buf[N-1] := value;
+
+              j := N - 1;
+              *[ j > 0 ->
+                   [ buf[j] > buf[j-1] ->
+                       temp      := buf[j-1];
+                       buf[j-1]  := buf[j];
+                       buf[j]    := temp;
+                       j         := j - 1
+                   [] buf[j] <= buf[j-1] ->
+                       j := 0
+                   ]
+              ];
+
+              r!buf[0];
+
+              (;i:N-1: buf[i] := buf[i+1]);
+              buf[N-1] := -128
+
+          [] value <= buf[N-1] ->
+              skip
+          ]
+      ]
+    ]
+  }
+}
